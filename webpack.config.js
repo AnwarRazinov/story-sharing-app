@@ -13,7 +13,7 @@ module.exports = (env, argv) => {
       path: path.resolve(__dirname, "docs"),
       filename: "bundle.[contenthash].js",
       clean: true,
-      publicPath: process.env.NODE_ENV === 'production' ? '/story-sharing-app/' : '/'
+      publicPath: isProduction ? '/story-sharing-app/' : '/'
     },
     module: {
       rules: [
@@ -49,11 +49,6 @@ module.exports = (env, argv) => {
             from: "public/manifest.json",
             to: "manifest.json",
           },
-          {
-            from: "public/service_worker.js",
-            to: "service-worker.js",
-            noErrorOnMissing: true,
-          },
         ],
       }),
     ],
@@ -74,6 +69,7 @@ module.exports = (env, argv) => {
     },
   };
 
+  // Only add WorkboxPlugin in production
   if (isProduction) {
     config.plugins.push(
       new WorkboxPlugin.GenerateSW({
