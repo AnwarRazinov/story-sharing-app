@@ -32,17 +32,24 @@ class Router {
   }
 
   handleRoute() {
-    const path = window.location.pathname;
+    // Fix: Get the path relative to the app base
+    let path = window.location.pathname;
+    
+    // For GitHub Pages deployment, remove the base path
+    if (path.startsWith('/story-sharing-app')) {
+      path = path.replace('/story-sharing-app', '') || '/';
+    }
+
     const route = this.findRoute(path);
 
     if (!route) {
-      this.navigateTo("/");
+      Router.navigateTo("/");
       return;
     }
 
     // Check authentication
     if (route.requiresAuth && !AuthService.isAuthenticated()) {
-      this.navigateTo("/login");
+      Router.navigateTo("/login");
       return;
     }
 
@@ -132,7 +139,11 @@ class Router {
   }
 
   static navigateTo(path) {
-    window.history.pushState({}, "", path);
+    // Fix: Handle GitHub Pages base path
+    const basePath = process.env.NODE_ENV === 'production' ? '/story-sharing-app' : '';
+    const fullPath = basePath + path;
+    
+    window.history.pushState({}, "", fullPath);
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
 }

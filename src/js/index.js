@@ -15,23 +15,24 @@ class App {
     this.router.init();
     SkipToContent.init();
     
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      try {
-        let swPath = process.env.NODE_ENV === 'production' ? 
-          '/service-worker.js' : '/sw-dev.js';
-        
-        const registration = await navigator.serviceWorker.register(swPath);
-        console.log('Service Worker registered:', registration);
-        
-        // Initialize notifications if user is authenticated
-        if (AuthService.isAuthenticated()) {
-          await NotificationService.init(registration);
-        }
-      } catch (error) {
-        console.error('Service Worker registration failed:', error);
-      }
+// Register service worker
+if ('serviceWorker' in navigator) {
+  try {
+    // Fix: Correct service worker path for GitHub Pages
+    let swPath = process.env.NODE_ENV === 'production' ? 
+      '/story-sharing-app/service-worker.js' : '/sw-dev.js';
+    
+    const registration = await navigator.serviceWorker.register(swPath);
+    console.log('Service Worker registered:', registration);
+    
+    // Initialize notifications if user is authenticated
+    if (AuthService.isAuthenticated()) {
+      await NotificationService.init(registration);
     }
+  } catch (error) {
+    console.error('Service Worker registration failed:', error);
+  }
+}
 
     // Listen for auth state changes
     window.addEventListener('auth-changed', async () => {
