@@ -8,6 +8,7 @@ class MapComponent {
     };
     this.map = null;
     this.markers = [];
+    this.clickMarker = null; // Add this for click-to-select functionality
   }
 
   init() {
@@ -92,6 +93,13 @@ class MapComponent {
         this.map.removeLayer(marker);
       });
       this.markers = [];
+      
+      // Also clear click marker
+      if (this.clickMarker) {
+        this.map.removeLayer(this.clickMarker);
+        this.clickMarker = null;
+      }
+      
       console.log('✅ All markers cleared');
     } catch (error) {
       console.error('❌ Error clearing markers:', error);
@@ -112,6 +120,73 @@ class MapComponent {
     }
   }
 
+  // ADD THIS MISSING METHOD
+  enableClickToGetLocation(callback) {
+    if (!this.map) {
+      console.error('❌ Map not initialized, cannot enable click-to-get-location');
+      return;
+    }
+
+    try {
+      // Add click event listener to map
+      this.map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        console.log('📍 Map clicked at:', lat, lng);
+        
+        // Remove existing click marker if any
+        if (this.clickMarker) {
+          this.map.removeLayer(this.clickMarker);
+        }
+        
+        // Add new marker at clicked location
+        this.clickMarker = L.marker([lat, lng])
+          .addTo(this.map)
+          .bindPopup('📍 Selected location')
+          .openPopup();
+        
+        // Call the callback with coordinates
+        if (callback && typeof callback === 'function') {
+          callback(lat, lng);
+        }
+      });
+
+      console.log('✅ Click-to-get-location enabled');
+    } catch (error) {
+      console.error('❌ Error enabling click-to-get-location:', error);
+    }
+  }
+
+  // ADD THIS METHOD FOR DISABLING CLICK EVENTS
+  disableClickToGetLocation() {
+    if (!this.map) {
+      console.warn('⚠️ Map not initialized');
+      return;
+    }
+
+    try {
+      this.map.off('click');
+      
+      // Remove click marker if exists
+      if (this.clickMarker) {
+        this.map.removeLayer(this.clickMarker);
+        this.clickMarker = null;
+      }
+      
+      console.log('✅ Click-to-get-location disabled');
+    } catch (error) {
+      console.error('❌ Error disabling click-to-get-location:', error);
+    }
+  }
+
+  // ADD THIS METHOD TO GET CURRENT CLICK LOCATION
+  getClickedLocation() {
+    if (this.clickMarker) {
+      const latlng = this.clickMarker.getLatLng();
+      return { lat: latlng.lat, lng: latlng.lng };
+    }
+    return null;
+  }
+
   cleanup() {
     try {
       if (this.map) {
@@ -119,6 +194,7 @@ class MapComponent {
         this.clearMarkers();
         this.map.remove();
         this.map = null;
+        this.clickMarker = null;
       }
 
       // Clean up container
