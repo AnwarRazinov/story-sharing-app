@@ -2,3 +2,8 @@ API Configuration:
 - Story API: https://story-api.dicoding.dev/v1
 - Map Service: OpenStreetMap (No API key required)
 - VAPID Public Key: BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk
+
+Nama: Anwar
+Email: anwarbanjar8@gmail.com
+ID Dicoding: FC747D5Y1626
+URL Deployment: https://AnwarRazinov.github.io/story-sharing-app/
