@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 const Dotenv = require("dotenv-webpack");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 
@@ -9,7 +10,7 @@ module.exports = (env, argv) => {
   const config = {
     entry: "./src/js/index.js",
     output: {
-      path: path.resolve(__dirname, "dist"),
+      path: path.resolve(__dirname, "docs"),
       filename: "bundle.[contenthash].js",
       clean: true,
       publicPath: process.env.NODE_ENV === 'production' ? '/story-sharing-app/' : '/'
@@ -42,11 +43,24 @@ module.exports = (env, argv) => {
         filename: "index.html",
       }),
       new Dotenv(),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: "public/manifest.json",
+            to: "manifest.json",
+          },
+          {
+            from: "public/service_worker.js",
+            to: "service-worker.js",
+            noErrorOnMissing: true,
+          },
+        ],
+      }),
     ],
     devServer: {
       static: [
         {
-          directory: path.join(__dirname, "dist"),
+          directory: path.join(__dirname, "docs"),
         },
         {
           directory: path.join(__dirname, "public"),
@@ -60,7 +74,6 @@ module.exports = (env, argv) => {
     },
   };
 
-  // Hanya tambahkan WorkboxPlugin saat build production
   if (isProduction) {
     config.plugins.push(
       new WorkboxPlugin.GenerateSW({
@@ -74,7 +87,7 @@ module.exports = (env, argv) => {
               cacheName: "api-cache",
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 5 * 60, // 5 minutes
+                maxAgeSeconds: 5 * 60,
               },
             },
           },
@@ -85,7 +98,7 @@ module.exports = (env, argv) => {
               cacheName: "image-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                maxAgeSeconds: 30 * 24 * 60 * 60,
               },
             },
           },
