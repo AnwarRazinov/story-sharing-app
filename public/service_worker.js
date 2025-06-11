@@ -1,7 +1,8 @@
+
 const CACHE_NAME = 'dicoding-story-v1';
 const SHELL_CACHE = 'dicoding-story-shell-v1';
 const DATA_CACHE = 'dicoding-story-data-v1';
-
+ 
 // Application Shell resources (static assets)
 const SHELL_FILES = [
   '/',
@@ -9,7 +10,7 @@ const SHELL_FILES = [
   '/manifest.json',
   // Add other static assets as needed
 ];
-
+ 
 // Install event - cache shell resources
 self.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Install');
@@ -24,7 +25,7 @@ self.addEventListener('install', (event) => {
       })
   );
 });
-
+ 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activate');
@@ -41,12 +42,12 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
-
+ 
 // Fetch event - serve from cache with different strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-
+ 
   // Handle API requests (Network First strategy)
   if (url.origin === 'https://story-api.dicoding.dev') {
     event.respondWith(
@@ -67,7 +68,7 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-
+ 
   // Handle navigation requests (App Shell)
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -77,7 +78,7 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-
+ 
   // Handle static assets (Cache First strategy)
   event.respondWith(
     caches.match(request).then((response) => {
@@ -90,20 +91,20 @@ self.addEventListener('fetch', (event) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-
+ 
         // Clone the response
         const responseToCache = response.clone();
-
+ 
         caches.open(SHELL_CACHE).then((cache) => {
           cache.put(request, responseToCache);
         });
-
+ 
         return response;
       });
     })
   );
 });
-
+ 
 // Push notification handling
 self.addEventListener("push", function (event) {
   const data = event.data ? event.data.json() : {};
@@ -121,12 +122,12 @@ self.addEventListener("push", function (event) {
     tag: 'story-notification',
     requireInteraction: false
   };
-
+ 
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
 });
-
+ 
 // Notification click handling
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
