@@ -51,8 +51,9 @@ class NotificationService {
         },
       };
 
+      // Fix: Use only the endpoint path, not the full URL
       const response = await ApiUtil.post(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SUBSCRIBE}`,
+        API_CONFIG.ENDPOINTS.SUBSCRIBE,  // Remove BASE_URL from here
         subscriptionData,
         {
           'Authorization': `Bearer ${token}`,
@@ -82,8 +83,9 @@ class NotificationService {
           endpoint: subscription.endpoint
         };
 
+        // Fix: Use only the endpoint path, not the full URL
         await ApiUtil.delete(
-          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UNSUBSCRIBE}`,
+          API_CONFIG.ENDPOINTS.UNSUBSCRIBE,  // Remove BASE_URL from here
           unsubscribeData,
           {
             'Authorization': `Bearer ${token}`,
