@@ -58,6 +58,13 @@ class NotificationService {
     } catch (error) {
       console.error("❌ Failed to subscribe to push notifications:", error);
       
+      // PERBAIKAN: Pastikan token tersedia di fallback
+      const fallbackToken = AuthModel.getToken(); // Ambil token lagi untuk fallback
+      if (!fallbackToken) {
+        console.error("❌ No token available for fallback subscription");
+        return;
+      }
+      
       // Fallback for testing API endpoint
       try {
         console.log("🔄 Creating fallback subscription for API testing...");
@@ -73,7 +80,7 @@ class NotificationService {
         };
         
         console.log("✅ Fallback subscription created");
-        await this.sendSubscriptionToServer(mockSubscription, token);
+        await this.sendSubscriptionToServer(mockSubscription, fallbackToken);
       } catch (fallbackError) {
         console.error("❌ Fallback subscription also failed:", fallbackError);
       }
@@ -89,10 +96,10 @@ class NotificationService {
         keys: {
           p256dh: subscription.getKey ? 
             btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey("p256dh")))) :
-            btoa("mock_p256dh_key"),
+            btoa("mock_p256dh_key_for_testing"),
           auth: subscription.getKey ? 
-            btoa(String.fromCharChar.apply(null, new Uint8Array(subscription.getKey("auth")))) :
-            btoa("mock_auth_key"),
+            btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey("auth")))) : // FIXED: fromCharCode bukan fromCharChar
+            btoa("mock_auth_key_for_testing"),
         },
       };
 
@@ -120,10 +127,14 @@ class NotificationService {
       const data = await response.json();
       console.log("🎉 Server response:", data);
       console.log("✅ Successfully registered with push notification service!");
+      console.log("🏆 Push notification setup completed successfully!");
+      console.log("📊 Subscription type:", subscription.getKey ? "Real browser push" : "API integration test");
 
       // Show success notification
       this.showLocalNotification("🎉 Push Notifications Enabled!", {
-        body: "You will now receive notifications about new stories!",
+        body: subscription.getKey ? 
+          "You'll receive push notifications for new stories." :
+          "Push notification API integration successful!",
         icon: this.createNotificationIcon("✅")
       });
 
