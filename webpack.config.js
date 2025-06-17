@@ -49,6 +49,10 @@ module.exports = (env, argv) => {
             from: "public/manifest.json",
             to: "manifest.json",
           },
+          {
+            from: "public/sw-dev.js",
+            to: "sw-dev.js",
+          }
         ],
       }),
     ],
@@ -69,35 +73,63 @@ module.exports = (env, argv) => {
     },
   };
 
-  // Only add WorkboxPlugin in production
+  // PERBAIKAN: Workbox configuration untuk offline yang proper
   if (isProduction) {
     config.plugins.push(
       new WorkboxPlugin.GenerateSW({
         clientsClaim: true,
         skipWaiting: true,
+        // PENTING: Offline fallback
+        navigateFallback: '/story-sharing-app/index.html',
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+        // Cache essential files
+        additionalManifestEntries: [
+          { url: '/story-sharing-app/', revision: '1' },
+          { url: '/story-sharing-app/index.html', revision: '1' },
+          { url: '/story-sharing-app/manifest.json', revision: '1' },
+        ],
         runtimeCaching: [
+          // API requests - Network First (with offline fallback)
           {
-            urlPattern: /https:\/\/story-api\.dicoding\.dev\/v1/,
+            urlPattern: /^https:\/\/story-api\.dicoding\.dev\/v1\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 5 * 60,
+                maxAgeSeconds: 5 * 60, // 5 minutes
               },
+              networkTimeoutSeconds: 3,
             },
           },
+          // Images - Cache First
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
             handler: "CacheFirst",
             options: {
               cacheName: "image-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
               },
             },
           },
+          // Fonts and CSS - Stale While Revalidate
+          {
+            urlPattern: /\.(?:css|woff|woff2|ttf|eot)$/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "static-resources",
+            },
+          },
+          // External resources (maps, etc.)
+          {
+            urlPattern: /^https:\/\/.*\.(?:openstreetmap|leafletjs)\.org\//,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "external-resources",
+            },
+          }
         ],
       })
     );
