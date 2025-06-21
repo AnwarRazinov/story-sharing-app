@@ -1,13 +1,26 @@
-// Development service worker with basic offline support
+// Development service worker with proper path handling
 const CACHE_NAME = 'dev-cache-v1';
+const DATA_CACHE = 'dev-data-cache-v1';
+
+// Determine base path based on current location
+const getBasePath = () => {
+  const currentPath = self.location.pathname;
+  if (currentPath.includes('/story-sharing-app/')) {
+    return '/story-sharing-app';
+  }
+  return '';
+};
+
+const basePath = getBasePath();
+
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  `${basePath}/`,
+  `${basePath}/index.html`,
+  `${basePath}/manifest.json`
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW Dev] Installing...');
+  console.log('[SW Dev] Installing... Base path:', basePath);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -23,28 +36,94 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('[SW Dev] Activating...');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    // Clean up old caches
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME && cacheName !== DATA_CACHE) {
+            console.log('[SW Dev] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      return self.clients.claim();
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // For development, just log requests
-  console.log('[SW Dev] Fetching:', event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
   
-  // Basic offline fallback
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request)
-        .then((response) => {
-          if (response) {
-            console.log('[SW Dev] Serving from cache:', event.request.url);
+  console.log('[SW Dev] Fetching:', request.url);
+
+  // Handle API requests with Network First strategy
+  if (url.origin === 'https://story-api.dicoding.dev') {
+    event.respondWith(
+      caches.open(DATA_CACHE).then((cache) => {
+        return fetch(request)
+          .then((response) => {
+            // Cache successful GET requests
+            if (request.method === 'GET' && response.status === 200) {
+              console.log('[SW Dev] Caching API response:', request.url);
+              cache.put(request, response.clone());
+            }
             return response;
-          }
-          // Fallback to index.html for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-    })
+          })
+          .catch((error) => {
+            console.log('[SW Dev] Network failed, trying cache:', request.url);
+            // Try to serve from cache if network fails
+            return cache.match(request).then((cachedResponse) => {
+              if (cachedResponse) {
+                console.log('[SW Dev] Serving API from cache:', request.url);
+                return cachedResponse;
+              }
+              // If not in cache, return a basic error response
+              console.log('[SW Dev] No cache available for:', request.url);
+              throw error;
+            });
+          });
+      })
+    );
+    return;
+  }
+
+  // Handle all other requests
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // Cache successful responses
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch((error) => {
+        console.log('[SW Dev] Network failed for:', request.url);
+        
+        // Try to serve from cache
+        return caches.match(request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              console.log('[SW Dev] Serving from cache:', request.url);
+              return cachedResponse;
+            }
+            
+            // For navigation requests, serve the main page
+            if (request.mode === 'navigate') {
+              console.log('[SW Dev] Serving fallback page for navigation');
+              return caches.match(`${basePath}/index.html`);
+            }
+            
+            // For other requests, just fail
+            throw error;
+          });
+      })
   );
 });
 
@@ -55,8 +134,8 @@ self.addEventListener('push', (event) => {
   const title = 'Development Push Test';
   const options = {
     body: 'Push notification working in development!',
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png'
+    icon: `${basePath}/icon-192x192.png`,
+    badge: `${basePath}/icon-192x192.png`
   };
 
   event.waitUntil(
@@ -69,6 +148,6 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   event.waitUntil(
-    clients.openWindow('/')
+    clients.openWindow(`${basePath}/`)
   );
 });
