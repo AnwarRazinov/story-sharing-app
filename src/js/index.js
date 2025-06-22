@@ -11,32 +11,26 @@ class App {
   }
 
   async init() {
-    // Initialize router first
     this.router.init();
     SkipToContent.init();
     
-    // Register service worker
     if ('serviceWorker' in navigator) {
       try {
-        // PERBAIKAN: Use different SW for dev vs production
-        const swPath = process.env.NODE_ENV === 'production' ? 
-          './service-worker.js' : './sw-dev.js';
+        const isProduction = process.env.NODE_ENV === 'production';
+        const swPath = isProduction ? './service-worker.js' : './sw-dev.js';
         
         console.log('Registering service worker:', swPath);
         
         const registration = await navigator.serviceWorker.register(swPath);
         console.log('Service Worker registered:', registration);
         
-        // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
         console.log('Service Worker is ready');
         
-        // Initialize notifications if user is authenticated
         if (AuthService.isAuthenticated()) {
           await NotificationService.init(registration);
         }
         
-        // Listen for SW updates
         registration.addEventListener('updatefound', () => {
           console.log('Service Worker update found');
         });
@@ -46,14 +40,12 @@ class App {
       }
     }
 
-    // Listen for auth state changes
     window.addEventListener('auth-changed', async () => {
       if (this.router.navigation) {
         this.router.navigation.render();
       }
       this.router.handleRoute();
 
-      // Initialize notifications when user logs in
       if (AuthService.isAuthenticated()) {
         try {
           const registration = await navigator.serviceWorker.ready;
@@ -64,24 +56,18 @@ class App {
       }
     });
     
-    // Listen for popstate
     window.addEventListener('popstate', () => {
       this.router.handleRoute();
     });
 
-    // PERBAIKAN: Better offline detection
     this.handleOfflineStatus();
-
-    // Show install prompt if available
     this.handleInstallPrompt();
   }
 
   handleOfflineStatus() {
-    // Show offline indicator
     const showOfflineMessage = () => {
       if (!navigator.onLine) {
         console.log('📴 App is offline - using cached content');
-        // Optional: Show offline banner
         this.showOfflineBanner();
       } else {
         console.log('🌐 App is online');
@@ -89,16 +75,12 @@ class App {
       }
     };
 
-    // Check initial status
     showOfflineMessage();
-
-    // Listen for online/offline events
     window.addEventListener('online', showOfflineMessage);
     window.addEventListener('offline', showOfflineMessage);
   }
 
   showOfflineBanner() {
-    // Remove existing banner if any
     const existing = document.getElementById('offline-banner');
     if (existing) existing.remove();
 
@@ -135,7 +117,6 @@ class App {
       e.preventDefault();
       deferredPrompt = e;
       
-      // Show install button or banner
       const installBtn = document.createElement('button');
       installBtn.textContent = '📱 Install App';
       installBtn.style.cssText = `
@@ -165,7 +146,6 @@ class App {
   }
 }
 
-// Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('app')) {
     new App();

@@ -57,15 +57,9 @@ module.exports = (env, argv) => {
       }),
     ],
     devServer: {
-      static: [
-        {
-          directory: path.join(__dirname, "docs"),
-        },
-        {
-          directory: path.join(__dirname, "public"),
-          publicPath: "/",
-        },
-      ],
+      static: {
+        directory: path.join(__dirname, "public"),
+      },
       compress: true,
       port: 9000,
       hot: true,
@@ -73,28 +67,27 @@ module.exports = (env, argv) => {
     },
   };
 
-  // PERBAIKAN: Workbox configuration untuk offline yang proper
+  // PRODUCTION: Workbox configuration to match your friend's setup
   if (isProduction) {
     config.plugins.push(
       new WorkboxPlugin.GenerateSW({
         clientsClaim: true,
         skipWaiting: true,
-        // PENTING: Offline fallback
+        // This creates the workbox-precache-v2 cache like your friend's
         navigateFallback: '/story-sharing-app/index.html',
-        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
-        // Cache essential files
-        additionalManifestEntries: [
-          { url: '/story-sharing-app/', revision: '1' },
-          { url: '/story-sharing-app/index.html', revision: '1' },
-          { url: '/story-sharing-app/manifest.json', revision: '1' },
-        ],
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /\/api\//],
+        
+        // Cache names that match your friend's pattern
+        cacheId: 'story-app',
+        
+        // Runtime caching strategies
         runtimeCaching: [
-          // API requests - Network First (with offline fallback)
+          // API responses cache
           {
             urlPattern: /^https:\/\/story-api\.dicoding\.dev\/v1\//,
             handler: "NetworkFirst",
             options: {
-              cacheName: "api-cache",
+              cacheName: "api-responses",
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 5 * 60, // 5 minutes
@@ -102,35 +95,37 @@ module.exports = (env, argv) => {
               networkTimeoutSeconds: 3,
             },
           },
-          // Images - Cache First
+          // Images cache
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
             handler: "CacheFirst",
             options: {
-              cacheName: "image-cache",
+              cacheName: "static-resources",
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
               },
             },
           },
-          // Fonts and CSS - Stale While Revalidate
+          // External resources
           {
-            urlPattern: /\.(?:css|woff|woff2|ttf|eot)$/,
+            urlPattern: /^https:\/\/unpkg\.com\//,
             handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "static-resources",
+              cacheName: "cdn-cache",
             },
           },
-          // External resources (maps, etc.)
           {
-            urlPattern: /^https:\/\/.*\.(?:openstreetmap|leafletjs)\.org\//,
+            urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\//,
             handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "external-resources",
+              cacheName: "cdn-cache",
             },
-          }
+          },
         ],
+        
+        // Include all build files in precache
+        exclude: [/\.map$/, /manifest$/, /\.htaccess$/],
       })
     );
   }

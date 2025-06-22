@@ -1,6 +1,6 @@
 {
   "name": "Dicoding Story Sharing",
-  "short_name": "DStory",
+  "short_name": "StoryShare",
   "description": "Berbagi cerita dengan komunitas Dicoding",
   "start_url": "/story-sharing-app/",
   "scope": "/story-sharing-app/",
